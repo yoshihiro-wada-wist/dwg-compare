@@ -1,0 +1,18 @@
+# 依存パッケージ（package.json から復元可能）
+node_modules/
+
+# Playwright のテスト生成物
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+
+# ログ
+*.log
+npm-debug.log*
+
+# OS / エディタ
+.DS_Store
+Thumbs.db
+.idea/
+*.swp

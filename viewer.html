@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DWG Compare</title>
+  <link rel="stylesheet" href="viewer.css" />
+</head>
+<body>
+  <header class="toolbar">
+    <div class="files">
+      <label class="filebtn">
+        旧図 (A)
+        <input type="file" id="fileA" accept=".dwg" />
+        <span class="fname" id="nameA">未選択</span>
+      </label>
+      <label class="filebtn">
+        新図 (B)
+        <input type="file" id="fileB" accept=".dwg" />
+        <span class="fname" id="nameB">未選択</span>
+      </label>
+      <button id="compareBtn" class="primary" disabled>比較</button>
+    </div>
+
+    <div class="toggles">
+      <label class="chip removed"><input type="checkbox" id="tRemoved" checked /> 削除 <b id="cRemoved">0</b></label>
+      <label class="chip added"><input type="checkbox" id="tAdded" checked /> 追加 <b id="cAdded">0</b></label>
+      <label class="chip common"><input type="checkbox" id="tCommon" checked /> 共通 <b id="cCommon">0</b></label>
+      <label class="tol">許容差
+        <input type="number" id="tol" value="0.01" step="0.001" min="0" />
+      </label>
+      <button id="fitBtn">全体表示</button>
+    </div>
+  </header>
+
+  <main>
+    <canvas id="canvas"></canvas>
+    <div id="overlay" class="overlay">
+      <div class="hint">
+        <h1>DWG 重ね合わせ差分ビューア</h1>
+        <p>旧図(A)と新図(B)のDWGを選んで「比較」を押してください。</p>
+        <p class="small">解析・描画はすべてこのブラウザ内で完結し、ファイルは外部に送信されません。</p>
+      </div>
+    </div>
+    <div id="status" class="status"></div>
+  </main>
+
+  <script type="module" src="viewer.js"></script>
+</body>
+</html>

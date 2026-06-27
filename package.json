@@ -1,0 +1,16 @@
+{
+  "name": "dwg-compare",
+  "version": "1.0.0",
+  "description": "2つのDWGをブラウザ内で読み込み、重ね合わせて差分を色分け表示します。 **削除（旧図Aのみ）= 赤 / 追加（新図Bのみ）= 青 / 共通 = グレー**。 解析・描画はすべてローカル（WASM）で完結し、ファイルは外部送信されません。",
+  "main": "background.js",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "devDependencies": {
+    "@playwright/test": "^1.61.1"
+  }
+}

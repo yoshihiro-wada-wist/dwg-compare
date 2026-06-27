@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "DWG Compare (重ね合わせ差分)",
+  "version": "0.4.0",
+  "description": "2つのDWGをブラウザ内で読み込み、重ね合わせて差分（削除=赤/追加=青/共通=グレー）を表示します。",
+  "action": {
+    "default_title": "DWG Compare を開く"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "sandbox": {
+    "pages": ["sandbox.html"]
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'",
+    "sandbox": "sandbox allow-scripts; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'; object-src 'self'"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["vendor/wasm/libredwg-web.wasm", "vendor/wasm/libredwg-web.js", "vendor/dist/libredwg-web.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
