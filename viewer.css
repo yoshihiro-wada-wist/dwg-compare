@@ -97,3 +97,40 @@ main { position: relative; flex: 1; overflow: hidden; }
 }
 .status:empty { display: none; }
 .status.err { color: var(--removed); border-color: color-mix(in srgb, var(--removed) 50%, var(--line)); }
+
+/* ============ 印刷 ============ */
+/* 画面上は印刷エリアを隠す */
+#printArea { display: none; }
+
+@media print {
+  /* 画面UIを全部隠し、印刷エリアだけを白背景で表示 */
+  .toolbar, main { display: none !important; }
+  html, body { height: auto; background: #fff; color: #000; }
+  #printArea {
+    display: block;
+    color: #000;
+    padding: 0;
+  }
+  .print-header {
+    margin-bottom: 8px;
+    border-bottom: 1px solid #000;
+    padding-bottom: 6px;
+  }
+  .print-header h1 { font-size: 16px; margin: 0 0 6px; }
+  .print-meta { font-size: 12px; line-height: 1.5; }
+  .print-legend { margin-top: 6px; font-size: 12px; display: flex; gap: 16px; }
+  .print-legend b { font-variant-numeric: tabular-nums; }
+  .print-legend .removed { color: #e5484d; }
+  .print-legend .added   { color: #4f8cf7; }
+  .print-legend .common  { color: #5b6270; }
+  #printImg {
+    display: block;
+    width: 100%;
+    height: auto;
+    /* 図の縦横比を保ったまま用紙内に収める */
+    max-height: calc(100vh - 120px);
+    object-fit: contain;
+    border: 1px solid #ccc;
+  }
+  @page { margin: 12mm; }
+}

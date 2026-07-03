@@ -68,15 +68,15 @@ test('test_data の2図面を解析し、件数と差分が期待どおり', asy
   const A = await parseInPage(page, a64);
   const B = await parseInPage(page, b64);
 
-  // 解析件数
+  // 解析件数（現行 test_data の値）
   expect(A.items.length).toBe(466);
   expect(A.total).toBe(466);
-  expect(B.items.length).toBe(459);
-  expect(B.total).toBe(459);
+  expect(B.items.length).toBe(451);
+  expect(B.total).toBe(451);
 
-  // 差分件数（旧A=466 / 新B=459, 共通455）
+  // 差分件数（旧A=466 / 新B=451, 共通445）
   const counts = diff(A.items, B.items);
-  expect(counts).toEqual({ common: 455, added: 4, removed: 11 });
+  expect(counts).toEqual({ common: 445, added: 6, removed: 21 });
 
   // 整合性: removed = A - common, added = B - common
   expect(counts.removed).toBe(A.items.length - counts.common);

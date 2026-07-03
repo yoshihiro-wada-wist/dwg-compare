@@ -4,7 +4,19 @@
   "version": "0.4.0",
   "description": "2つのDWGをブラウザ内で読み込み、重ね合わせて差分（削除=赤/追加=青/共通=グレー）を表示します。",
   "action": {
-    "default_title": "DWG Compare を開く"
+    "default_title": "DWG Compare を開く",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
   },
   "background": {
     "service_worker": "background.js"

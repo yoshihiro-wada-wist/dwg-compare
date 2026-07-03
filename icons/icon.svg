@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#262c3c"/>
+      <stop offset="1" stop-color="#151821"/>
+    </linearGradient>
+  </defs>
+  <!-- 背景（角丸） -->
+  <rect x="2" y="2" width="124" height="124" rx="26" fill="url(#bg)" stroke="#3a4152" stroke-width="2"/>
+  <!-- Δ（差分記号）: 左半分=赤(削除) / 右半分=青(追加)。中央に隙間を空けて2図面の対比を表現 -->
+  <!-- 左半分（赤） -->
+  <path d="M 62 26 L 26 101 L 62 101 Z"
+        fill="#e5484d" stroke="#ff6b70" stroke-width="3" stroke-linejoin="round"/>
+  <!-- 右半分（青） -->
+  <path d="M 66 26 L 102 101 L 66 101 Z"
+        fill="#4f8cf7" stroke="#7aa9ff" stroke-width="3" stroke-linejoin="round"/>
+  <!-- 底辺の白い基準線（図面の重ね合わせを示唆） -->
+  <rect x="24" y="104" width="80" height="6" rx="3" fill="#e6e8ec"/>
+</svg>

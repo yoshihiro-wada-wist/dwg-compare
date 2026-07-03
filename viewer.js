@@ -102,6 +102,7 @@ const els = {
   nameB: document.getElementById('nameB'),
   compareBtn: document.getElementById('compareBtn'),
   fitBtn: document.getElementById('fitBtn'),
+  printBtn: document.getElementById('printBtn'),
   tRemoved: document.getElementById('tRemoved'),
   tAdded: document.getElementById('tAdded'),
   tCommon: document.getElementById('tCommon'),
@@ -112,6 +113,12 @@ const els = {
   canvas: document.getElementById('canvas'),
   overlay: document.getElementById('overlay'),
   status: document.getElementById('status'),
+  printImg: document.getElementById('printImg'),
+  pNameA: document.getElementById('pNameA'),
+  pNameB: document.getElementById('pNameB'),
+  pRemoved: document.getElementById('pRemoved'),
+  pAdded: document.getElementById('pAdded'),
+  pCommon: document.getElementById('pCommon'),
 };
 const ctx = els.canvas.getContext('2d');
 
@@ -134,6 +141,9 @@ async function readFile(input, which) {
   const buf = await f.arrayBuffer();
   if (which === 'A') { bufA = buf; els.nameA.textContent = f.name; }
   else { bufB = buf; els.nameB.textContent = f.name; }
+  // 同じファイルを選び直しても change が再発火するよう value をクリアする。
+  // （ファイルを外部で編集→再選択しても再読み込みされない問題への対処）
+  input.value = '';
   updateCompareEnabled();
 }
 
@@ -141,6 +151,7 @@ els.fileA.addEventListener('change', () => readFile(els.fileA, 'A'));
 els.fileB.addEventListener('change', () => readFile(els.fileB, 'B'));
 els.compareBtn.addEventListener('click', runCompare);
 els.fitBtn.addEventListener('click', () => { resizeCanvas(); fitTo(bbox, els.canvas.width, els.canvas.height); render(); });
+els.printBtn.addEventListener('click', async () => { if (await printCurrentView()) window.print(); });
 [els.tRemoved, els.tAdded, els.tCommon].forEach(c => c.addEventListener('change', render));
 els.tol.addEventListener('change', () => { if (bufA && bufB) runCompare(); });
 
@@ -177,6 +188,7 @@ async function runCompare() {
     resizeCanvas();
     fitTo(bbox, els.canvas.width, els.canvas.height);
     render();
+    els.printBtn.disabled = false; // 比較結果が表示されたので印刷可能に
 
     const warn = [];
     warn.push(`A: 図形${A.items.length}/全${A.total}件, B: 図形${B.items.length}/全${B.total}件`);
@@ -222,32 +234,41 @@ function visible(cls) {
       || (cls === 'common' && els.tCommon.checked);
 }
 
-function drawItems(items, onlyCls) {
+// g: 描画先context, toScreen: world→描画座標, scale: 文字サイズ用スケール
+function drawItems(g, items, onlyCls, toScreen, scale) {
   for (const it of items) {
     if (it.cls !== onlyCls || !visible(it.cls)) continue;
-    ctx.strokeStyle = COLORS[it.cls];
-    ctx.beginPath();
+    g.strokeStyle = COLORS[it.cls];
+    g.beginPath();
     for (const pl of it.polylines) {
       for (let i = 0; i < pl.length; i++) {
-        const s = w2s(pl[i]);
-        if (i === 0) ctx.moveTo(s.x, s.y); else ctx.lineTo(s.x, s.y);
+        const s = toScreen(pl[i]);
+        if (i === 0) g.moveTo(s.x, s.y); else g.lineTo(s.x, s.y);
       }
     }
-    ctx.stroke();
+    g.stroke();
     for (const l of it.labels) {
-      const s = w2s(l);
-      const fs = Math.max(8, l.h * cam.scale);
+      const s = toScreen(l);
+      const fs = Math.max(8, l.h * scale);
       if (fs < 5) continue;
-      ctx.save();
-      ctx.translate(s.x, s.y);
-      if (l.rot) ctx.rotate(-l.rot);
-      ctx.fillStyle = COLORS[it.cls];
-      ctx.font = `${fs}px sans-serif`;
-      ctx.textBaseline = 'bottom';
-      ctx.fillText(l.text, 0, 0);
-      ctx.restore();
+      g.save();
+      g.translate(s.x, s.y);
+      if (l.rot) g.rotate(-l.rot);
+      g.fillStyle = COLORS[it.cls];
+      g.font = `${fs}px sans-serif`;
+      g.textBaseline = 'bottom';
+      g.fillText(l.text, 0, 0);
+      g.restore();
     }
   }
+}
+
+// itemsを描画順（共通→削除→追加）で g に描く
+function paint(g, toScreen, scale) {
+  g.lineWidth = 1;
+  drawItems(g, itemsA, 'common', toScreen, scale);
+  drawItems(g, itemsA, 'removed', toScreen, scale);
+  drawItems(g, itemsB, 'added', toScreen, scale);
 }
 
 function render() {
@@ -255,11 +276,46 @@ function render() {
   ctx.save();
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, els.canvas.width, els.canvas.height);
-  ctx.lineWidth = 1;
-  drawItems(itemsA, 'common');
-  drawItems(itemsA, 'removed');
-  drawItems(itemsB, 'added');
+  paint(ctx, w2s, cam.scale);
   ctx.restore();
+}
+
+// ============================================================
+//  印刷（現在の表示を白背景の画像にして window.print）
+// ============================================================
+async function printCurrentView() {
+  if (!bbox) return false; // 比較前は何もしない
+  const rect = els.canvas.getBoundingClientRect();
+  const W = Math.max(1, Math.round(rect.width));
+  const H = Math.max(1, Math.round(rect.height));
+  const k = 2; // 印刷用に2倍解像度
+  const oc = document.createElement('canvas');
+  oc.width = W * k;
+  oc.height = H * k;
+  const g = oc.getContext('2d');
+  g.setTransform(k, 0, 0, k, 0, 0);
+  g.fillStyle = '#ffffff';
+  g.fillRect(0, 0, W, H);
+  // 画面と同じカメラ・表示トグルで描画（w2s は現在のcamを参照）
+  paint(g, w2s, cam.scale);
+
+  // ヘッダー（ファイル名・件数）を反映
+  els.pNameA.textContent = els.nameA.textContent;
+  els.pNameB.textContent = els.nameB.textContent;
+  els.pRemoved.textContent = els.cRemoved.textContent;
+  els.pAdded.textContent = els.cAdded.textContent;
+  els.pCommon.textContent = els.cCommon.textContent;
+
+  // 画像のロード完了を待ってから印刷する。
+  // src設定→即print だと初回は画像未ロードでプレビューが空になるため。
+  els.printImg.src = oc.toDataURL('image/png');
+  await new Promise((resolve) => {
+    // 同じ画像で既にロード済みなら即座に、そうでなければ onload を待つ
+    if (els.printImg.complete && els.printImg.naturalWidth > 0) { resolve(); return; }
+    els.printImg.onload = resolve;
+    els.printImg.onerror = resolve; // 失敗しても印刷は試みる
+  });
+  return true;
 }
 
 // ---- パン / ズーム ----

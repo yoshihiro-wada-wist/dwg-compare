@@ -16,6 +16,9 @@ export const test = base.extend({
       args: [
         `--disable-extensions-except=${EXT_PATH}`,
         `--load-extension=${EXT_PATH}`,
+        // headless/WSL2ではGPUアクセラレーション2D Canvasの初回描画がハングするため、
+        // CPU(Skia)描画に切り替える。これで render()/印刷までE2E検証できる。
+        '--disable-accelerated-2d-canvas',
       ],
     });
     await use(context);
