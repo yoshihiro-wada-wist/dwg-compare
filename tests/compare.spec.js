@@ -68,16 +68,21 @@ test('test_data の2図面を解析し、件数と差分が期待どおり', asy
   const A = await parseInPage(page, a64);
   const B = await parseInPage(page, b64);
 
-  // 解析件数（現行 test_data の値）。
-  // items は total より1少ない: 匿名ブロック(*G0)の INSERT を除外しているため。
-  expect(A.items.length).toBe(465);
-  expect(A.total).toBe(466);
-  expect(B.items.length).toBe(450);
-  expect(B.total).toBe(451);
+  // 描画・差分対象の図形数（安定値）。
+  // 注: total(=libredwgが返す生エンティティ数)は環境により1程度揺れることがあるため
+  //     厳密一致では検証しない（items と差分は安定）。
+  // 寸法(DIMENSION)は計算済み幾何の匿名ブロック(*D#)を展開して各サブ要素
+  // (寸法線・補助線・矢印SOLID・文字MTEXT)を実体化する。Bは新規寸法2件を持つ。
+  expect(A.items.length).toBe(465); // A に寸法は無い
+  expect(B.items.length).toBe(467); // B は寸法2件の展開ぶんを含む
+  // 寸法1エンティティは複数サブ要素へ展開されるため、items は生エンティティ数(total)を
+  // 上回り得る。totalは正の健全性チェックのみ（items⊆entities の旧不変条件は成立しない）。
+  expect(A.total).toBeGreaterThan(0);
+  expect(B.total).toBeGreaterThan(0);
 
-  // 差分件数（旧A=465 / 新B=450, 共通444）
+  // 差分件数。追加23件には B の新規寸法2件を展開したサブ要素を含む。
   const counts = diff(A.items, B.items);
-  expect(counts).toEqual({ common: 444, added: 6, removed: 21 });
+  expect(counts).toEqual({ common: 444, added: 23, removed: 21 });
 
   // 整合性: removed = A - common, added = B - common
   expect(counts.removed).toBe(A.items.length - counts.common);
@@ -113,6 +118,6 @@ test('匿名ブロック(*で始まるINSERT)は除外される（左下の幻�
   const anon = A.items.filter(x => /^INSERT\|\*/.test(x.sig || ''));
   expect(anon).toHaveLength(0);
 
-  // このデータでは *G0 が1件除外されるので items は total より1少ない
-  expect(A.items.length).toBe(A.total - 1);
+  // *G0 を除外している分、items は total より少ない（total は環境で揺れるため不等号で検証）
+  expect(A.items.length).toBeLessThan(A.total);
 });

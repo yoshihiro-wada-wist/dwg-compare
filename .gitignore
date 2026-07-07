@@ -7,6 +7,9 @@ playwright-report/
 blob-report/
 .playwright/
 
+# 一時調査用ファイル（拡張は _ 始まりのファイルを読み込めないので必ず除外）
+_*
+
 # ログ
 *.log
 npm-debug.log*

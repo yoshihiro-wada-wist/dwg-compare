@@ -252,6 +252,24 @@ function visible(cls) {
       || (cls === 'common' && els.tCommon.checked);
 }
 
+// sans-serif の「font-size に対する実際の字面高」の比率を実測してキャッシュする。
+// DWGの文字高(字面高) → Canvasのfont-size 変換に使う。
+let _glyphRatio = null;
+function glyphRatio(g) {
+  if (_glyphRatio != null) return _glyphRatio;
+  try {
+    g.save();
+    g.font = '100px sans-serif';
+    const m = g.measureText('国'); // 全角字面の高さ
+    const asc = m.actualBoundingBoxAscent || 0;
+    const desc = m.actualBoundingBoxDescent || 0;
+    g.restore();
+    const h = asc + desc;
+    _glyphRatio = h > 1 ? h / 100 : 0.88;
+  } catch (_) { _glyphRatio = 0.88; }
+  return _glyphRatio;
+}
+
 // g: 描画先context, toScreen: world→描画座標, scale: 文字サイズ用スケール
 function drawItems(g, items, onlyCls, toScreen, scale) {
   for (const it of items) {
@@ -267,15 +285,36 @@ function drawItems(g, items, onlyCls, toScreen, scale) {
     g.stroke();
     for (const l of it.labels) {
       const s = toScreen(l);
-      const fs = Math.max(8, l.h * scale);
-      if (fs < 5) continue;
+      // DWGの文字高は「字面の高さ」。Canvasのfont-sizeはem基準なので、
+      // 実測した字面比率で割って、画面上の字面高が capPx になるよう補正する
+      // （こうしないとAutoCADより小さく表示される）。
+      const capPx = l.h * scale;      // 図面単位の文字高 → 画面px（=字面高の目標）
+      if (capPx < 4) continue;        // 小さすぎるものは潰れる＆重なるので間引く
+      const fs = capPx / glyphRatio(g);
+      const xScale = l.xScale || 1;   // 幅係数（横倍率）
       g.save();
       g.translate(s.x, s.y);
       if (l.rot) g.rotate(-l.rot);
+      if (xScale !== 1) g.scale(xScale, 1); // 幅方向のみ圧縮/拡大
       g.fillStyle = COLORS[it.cls];
       g.font = `${fs}px sans-serif`;
-      g.textBaseline = 'bottom';
-      g.fillText(l.text, 0, 0);
+      if (l.vertical) {
+        // 縦書きスタイル: 1文字ずつ下方向へ、字面高ぶん送って積む
+        g.textAlign = 'center';
+        g.textBaseline = 'middle';
+        const chars = [...String(l.text)];
+        for (let i = 0; i < chars.length; i++) {
+          g.fillText(chars[i], 0, i * capPx + capPx / 2);
+        }
+      } else {
+        g.textAlign = l.ah || 'left';
+        g.textBaseline = l.av || 'alphabetic';
+        // 複数行(\P)は下方向へ積む
+        const lines = String(l.text).split('\n');
+        for (let i = 0; i < lines.length; i++) {
+          g.fillText(lines[i], 0, i * capPx * 1.6);
+        }
+      }
       g.restore();
     }
   }

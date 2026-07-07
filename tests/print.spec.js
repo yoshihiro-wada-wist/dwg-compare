@@ -40,9 +40,9 @@ test('test_data で 比較→印刷 が動作し、印刷画像とヘッダー�
   // 比較完了＝印刷ボタン有効化（render後に有効化される）
   await expect(page.locator('#printBtn')).toBeEnabled({ timeout: 30_000 });
 
-  // 画面のカウントが現行データの期待値
+  // 画面のカウントが現行データの期待値（追加23件は新規寸法2件の展開ぶんを含む）
   await expect(page.locator('#cRemoved')).toHaveText('21');
-  await expect(page.locator('#cAdded')).toHaveText('6');
+  await expect(page.locator('#cAdded')).toHaveText('23');
   await expect(page.locator('#cCommon')).toHaveText('444');
 
   // 「初回」の印刷ボタン押下
@@ -68,7 +68,7 @@ test('test_data で 比較→印刷 が動作し、印刷画像とヘッダー�
   await expect(page.locator('#pNameA')).toHaveText('TB3Y.dwg');
   await expect(page.locator('#pNameB')).toHaveText('TB3Y_new.dwg');
   await expect(page.locator('#pRemoved')).toHaveText('21');
-  await expect(page.locator('#pAdded')).toHaveText('6');
+  await expect(page.locator('#pAdded')).toHaveText('23');
   await expect(page.locator('#pCommon')).toHaveText('444');
 });
 
