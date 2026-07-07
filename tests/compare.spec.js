@@ -68,15 +68,16 @@ test('test_data の2図面を解析し、件数と差分が期待どおり', asy
   const A = await parseInPage(page, a64);
   const B = await parseInPage(page, b64);
 
-  // 解析件数（現行 test_data の値）
-  expect(A.items.length).toBe(466);
+  // 解析件数（現行 test_data の値）。
+  // items は total より1少ない: 匿名ブロック(*G0)の INSERT を除外しているため。
+  expect(A.items.length).toBe(465);
   expect(A.total).toBe(466);
-  expect(B.items.length).toBe(451);
+  expect(B.items.length).toBe(450);
   expect(B.total).toBe(451);
 
-  // 差分件数（旧A=466 / 新B=451, 共通445）
+  // 差分件数（旧A=465 / 新B=450, 共通444）
   const counts = diff(A.items, B.items);
-  expect(counts).toEqual({ common: 445, added: 6, removed: 21 });
+  expect(counts).toEqual({ common: 444, added: 6, removed: 21 });
 
   // 整合性: removed = A - common, added = B - common
   expect(counts.removed).toBe(A.items.length - counts.common);
@@ -99,4 +100,19 @@ test('差分は対称: A→B の added/removed は B→A で入れ替わる', as
   expect(ab.common).toBe(ba.common);
   expect(ab.added).toBe(ba.removed);
   expect(ab.removed).toBe(ba.added);
+});
+
+test('匿名ブロック(*で始まるINSERT)は除外される（左下の幻の図形対策）', async ({ context, extensionId }) => {
+  const page = await context.newPage();
+  await page.goto(`chrome-extension://${extensionId}/viewer.html`);
+
+  const a64 = fs.readFileSync(path.join(DATA, 'TB3Y.dwg')).toString('base64');
+  const A = await parseInPage(page, a64);
+
+  // 匿名ブロック(*G0)は描画・差分対象に含まれない
+  const anon = A.items.filter(x => /^INSERT\|\*/.test(x.sig || ''));
+  expect(anon).toHaveLength(0);
+
+  // このデータでは *G0 が1件除外されるので items は total より1少ない
+  expect(A.items.length).toBe(A.total - 1);
 });

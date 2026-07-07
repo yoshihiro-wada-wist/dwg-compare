@@ -142,6 +142,10 @@ function buildItems(entities, tol) {
   let unsupported = 0;
   for (const e of entities) {
     if (e.isInPaperSpace) continue;
+    // 匿名ブロック(名前が * で始まる INSERT)は、DWGが内部生成する実体のない
+    // ブロック参照。挿入点(多くは原点)にマーカーが描かれ「実際に無い図形」として
+    // 見えてしまうため、描画・差分の対象から除外する。
+    if (e.type === 'INSERT' && typeof e.name === 'string' && e.name.startsWith('*')) continue;
     const s = entityToShapes(e, q);
     if (!s.sig) { unsupported++; continue; }
     items.push(s);

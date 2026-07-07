@@ -9,10 +9,16 @@ const EXT_PATH = path.resolve(__dirname, '..'); // 拡張ルート（manifest.js
 
 // 拡張を読み込んだ永続コンテキストと拡張IDを提供するfixture
 export const test = base.extend({
-  context: async ({}, use) => {
+  // テストごとのデバイスピクセル比（例: hidpi.spec.js が 2 を指定）。
+  // 注: --force-device-scale-factor フラグは Playwright のビューポート
+  // エミュレーション(dpr=1)に上書きされるため、コンテキストオプションで渡す。
+  deviceScaleFactor: [undefined, { option: true }],
+
+  context: async ({ deviceScaleFactor }, use) => {
     const userDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-dwg-'));
     const context = await chromium.launchPersistentContext(userDir, {
       channel: 'chromium', // MV3拡張＝新ヘッドレス
+      ...(deviceScaleFactor ? { deviceScaleFactor } : {}),
       args: [
         `--disable-extensions-except=${EXT_PATH}`,
         `--load-extension=${EXT_PATH}`,

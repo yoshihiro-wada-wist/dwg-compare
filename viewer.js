@@ -21,14 +21,18 @@ async function parseItems(arrayBuffer, tol) {
   iframe.src = chrome.runtime.getURL('sandbox.html');
   const wasmBase = chrome.runtime.getURL('vendor/wasm');
   const copy = arrayBuffer.slice(0); // transferで元を壊さないため複製
-  let onMsg;
+  let onMsg, initTimer;
   try {
     const res = await new Promise((resolve, reject) => {
+      // 初期化(ready)が返らないままだとUIが永久に「解析中…」で固まるため、
+      // ready 受信までに限りタイムアウトを設ける（解析自体は大きい図面で長くなり得るので対象外）
+      initTimer = setTimeout(() => reject(new Error('sandboxが応答しません（初期化タイムアウト）')), 30_000);
       onMsg = (ev) => {
         if (ev.source !== iframe.contentWindow) return;
         const m = ev.data || {};
         if (m.type === 'ready') {
           // 初期化完了 → このiframeへ parse を依頼
+          clearTimeout(initTimer);
           iframe.contentWindow.postMessage({ type: 'parse', id: 1, tol, buffer: copy }, '*', [copy]);
         } else if (m.type === 'fatal') {
           reject(new Error('sandbox初期化失敗: ' + (m.error || '') + (m.stack ? '\n' + m.stack : '')));
@@ -50,6 +54,7 @@ async function parseItems(arrayBuffer, tol) {
       total: res.total || 0,
     };
   } finally {
+    clearTimeout(initTimer);
     if (onMsg) window.removeEventListener('message', onMsg);
     iframe.remove(); // WASMモジュールごと破棄（次の解析はクリーンな状態で）
   }
@@ -75,7 +80,7 @@ function diff(itemsA, itemsB) {
 }
 
 // ============================================================
-//  カメラ
+//  カメラ（座標系は CSS ピクセル。パン/ズーム/印刷/render の dpr変換 すべてこの前提）
 // ============================================================
 const cam = { scale: 1, ox: 0, oy: 0 };
 function w2s(p) { return { x: p.x * cam.scale + cam.ox, y: -p.y * cam.scale + cam.oy }; }
@@ -90,6 +95,14 @@ function fitTo(bbox, W, H) {
   const cy = (bbox.miny + bbox.maxy) / 2;
   cam.ox = W / 2 - cx * cam.scale;
   cam.oy = H / 2 + cy * cam.scale;
+}
+
+// 表示中キャンバスのCSSピクセル寸法で全体表示する。
+// 注意: canvas.width/height はデバイスピクセル（CSS×dpr）なので渡してはいけない
+// （dpr>1 の環境で図が dpr倍に拡大され右下へずれる）。
+function fitToView(bbox) {
+  const r = els.canvas.getBoundingClientRect();
+  fitTo(bbox, r.width, r.height);
 }
 
 // ============================================================
@@ -150,12 +163,16 @@ async function readFile(input, which) {
 els.fileA.addEventListener('change', () => readFile(els.fileA, 'A'));
 els.fileB.addEventListener('change', () => readFile(els.fileB, 'B'));
 els.compareBtn.addEventListener('click', runCompare);
-els.fitBtn.addEventListener('click', () => { resizeCanvas(); fitTo(bbox, els.canvas.width, els.canvas.height); render(); });
+els.fitBtn.addEventListener('click', () => { resizeCanvas(); fitToView(bbox); render(); });
 els.printBtn.addEventListener('click', async () => { if (await printCurrentView()) window.print(); });
 [els.tRemoved, els.tAdded, els.tCommon].forEach(c => c.addEventListener('change', render));
 els.tol.addEventListener('change', () => { if (bufA && bufB) runCompare(); });
 
+let comparing = false; // 許容差changeはボタンのdisabledを経由しないため、二重実行をここで防ぐ
+
 async function runCompare() {
+  if (comparing) return;
+  comparing = true;
   let stage = '開始';
   try {
     els.compareBtn.disabled = true;
@@ -186,7 +203,7 @@ async function runCompare() {
     bbox = computeBbox([...itemsA, ...itemsB]);
     els.overlay.classList.add('hidden');
     resizeCanvas();
-    fitTo(bbox, els.canvas.width, els.canvas.height);
+    fitToView(bbox);
     render();
     els.printBtn.disabled = false; // 比較結果が表示されたので印刷可能に
 
@@ -202,6 +219,7 @@ async function runCompare() {
     const msg = (err && err.message) ? err.message : String(err);
     setStatus(`エラー（段階: ${stage}）\n${msg}`, true);
   } finally {
+    comparing = false;
     els.compareBtn.disabled = false;
   }
 }
@@ -339,9 +357,12 @@ els.canvas.addEventListener('wheel', (e) => {
   const r = els.canvas.getBoundingClientRect();
   const mx = e.clientX - r.left, my = e.clientY - r.top;
   const f = Math.exp(-e.deltaY * 0.0015);
+  // scaleが0/Infinityへ発散すると座標がNaNになり描画が消えるため範囲を制限
+  const ns = Math.min(1e8, Math.max(1e-8, cam.scale * f));
+  if (ns === cam.scale) return;
   const wx = (mx - cam.ox) / cam.scale;
   const wy = -(my - cam.oy) / cam.scale;
-  cam.scale *= f;
+  cam.scale = ns;
   cam.ox = mx - wx * cam.scale;
   cam.oy = my + wy * cam.scale;
   render();

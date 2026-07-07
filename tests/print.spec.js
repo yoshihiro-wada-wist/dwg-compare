@@ -43,7 +43,7 @@ test('test_data で 比較→印刷 が動作し、印刷画像とヘッダー�
   // 画面のカウントが現行データの期待値
   await expect(page.locator('#cRemoved')).toHaveText('21');
   await expect(page.locator('#cAdded')).toHaveText('6');
-  await expect(page.locator('#cCommon')).toHaveText('445');
+  await expect(page.locator('#cCommon')).toHaveText('444');
 
   // 「初回」の印刷ボタン押下
   await page.locator('#printBtn').click({ force: true });
@@ -69,7 +69,7 @@ test('test_data で 比較→印刷 が動作し、印刷画像とヘッダー�
   await expect(page.locator('#pNameB')).toHaveText('TB3Y_new.dwg');
   await expect(page.locator('#pRemoved')).toHaveText('21');
   await expect(page.locator('#pAdded')).toHaveText('6');
-  await expect(page.locator('#pCommon')).toHaveText('445');
+  await expect(page.locator('#pCommon')).toHaveText('444');
 });
 
 test('印刷レイアウトが media=print で表示に切り替わる', async ({ context, extensionId }) => {
