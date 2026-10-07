@@ -19,3 +19,6 @@ npm-debug.log*
 Thumbs.db
 .idea/
 *.swp
+
+# Claude Code のローカル設定
+.claude/settings.local.json
